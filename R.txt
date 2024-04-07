@@ -1,0 +1,483 @@
+##########################
+#                        #
+# 1. R code (Simulation) #
+#                        # 
+##########################
+
+#################################################
+#                                               #
+# 1.1 Species Tree and Gene Trees in Simulation #
+#                                               #
+#################################################
+library(phybase)
+
+#Simulation 1
+tree <- "(((H:0.00402#0.01,C:0.00402#0.01):0.00304#0.01,G:0.00707#0.01):0.00929#0.01,O:0.01635#0.01)#0.01;"
+spname <- species.name(tree)
+nodematrix <- read.tree.nodes(tree, spname)$nodes
+rootnode <- 7
+seq <- rep(25, 4)
+t1 <- list()
+
+set.seed(100)
+for (i in 1:10) {
+  str <- sim.coaltree.sp(rootnode, nodematrix, 4, seq, name = spname)$gt
+  t1[[i]] <- str
+}
+
+#Simulation 2
+tree1 <- "(((H:0.00402#0.001,C:0.00402#0.001):0.00304#0.01,G:0.00707#0.01):0.00929#0.01,O:0.01635#0.01)#0.01;"
+spname1 <- species.name(tree1)
+nodematrix1 <- read.tree.nodes(tree1, spname1)$nodes
+rootnode <- 7
+seq <- rep(25, 4)
+t2 <- list()
+
+set.seed(100)
+for (i in 1:10) {
+  str1 <- sim.coaltree.sp(rootnode, nodematrix1, 4, seq, name = spname1)$gt
+  t2[[i]] <- str1
+}
+
+# Simulation 3
+tree2 <- "(((H:0.00402#0.1,C:0.00402#0.1):0.00304#0.01,G:0.00707#0.01):0.00929#0.01,O:0.01635#0.01)#0.01;"
+spname2 <- species.name(tree2)
+nodematrix2 <- read.tree.nodes(tree2, spname2)$nodes
+rootnode <- 7
+seq <- rep(25, 4)
+t3 <- list()
+
+set.seed(100)
+for (i in 1:10) {
+  str2 <- sim.coaltree.sp(rootnode, nodematrix2, 4, seq, name = spname2)$gt
+  t3[[i]] <- str2
+}
+
+#Simulation 4
+tree3 <- "(((H:0.00402#0.01,C:0.00402#0.01):0.00304#0.001,G:0.00707#0.001):0.00929#0.001,O:0.01635#0.001)#0.001;"
+spname3 <- species.name(tree3)
+nodematrix3 <- read.tree.nodes(tree3, spname3)$nodes
+rootnode <- 7
+seq <- rep(25, 4)
+t4 <- list()
+
+set.seed(100)
+for (i in 1:10) {
+  str3 <- sim.coaltree.sp(rootnode, nodematrix3, 4, seq, name = spname3)$gt
+  t4[[i]] <- str3
+}
+
+#Simulation 5
+tree4 <- "(((H:0.00402#0.01,C:0.00402#0.01):0.00304#0.1,G:0.00707#0.1):0.00929#0.1,O:0.01635#0.1)#0.1;"
+spname4 <- species.name(tree4)
+nodematrix4 <- read.tree.nodes(tree4, spname4)$nodes
+rootnode <- 7
+seq <- rep(25, 4)
+t5 <- list()
+
+set.seed(100)
+for (i in 1:10) {
+  str4 <- sim.coaltree.sp(rootnode, nodematrix4, 4, seq, name = spname4)$gt
+  t5[[i]] <- str4
+}
+
+write.table(t1,"C:\\Users\\Jian Wu\\Desktop\\STAT thesis\\final\\t1.txt")
+write.table(t2,"C:\\Users\\Jian Wu\\Desktop\\STAT thesis\\final\\t2.txt")
+write.table(t3,"C:\\Users\\Jian Wu\\Desktop\\STAT thesis\\final\\t3.txt")
+write.table(t4,"C:\\Users\\Jian Wu\\Desktop\\STAT thesis\\final\\t4.txt")
+write.table(t5,"C:\\Users\\Jian Wu\\Desktop\\STAT thesis\\final\\t5.txt")
+
+#######################################
+#                                     #        
+# 1.2 Data Pretreatment in Simulation #
+#                                     #
+####################################### 
+
+#Treatment 1, the code for other treatments is the same
+
+library(phybase)
+
+data <- read.table("output1.txt", header = FALSE, stringsAsFactors = FALSE)
+data2 <- data[!grepl("100", data$V1), ]
+data2$V1 <- gsub("Cs\\d+", "Cs", data2$V1)
+data2$V1 <- gsub("Hs\\d+", "Hs", data2$V1)
+data2$V1 <- gsub("Gs\\d+", "Gs", data2$V1)
+data2$V1 <- gsub("Os\\d+", "Os", data2$V1)
+
+data2$V2 <- gsub("A", "1000", data2$V2)
+data2$V2 <- gsub("C", "0100", data2$V2)
+data2$V2 <- gsub("G", "0010", data2$V2)
+data2$V2 <- gsub("T", "0001", data2$V2)
+
+nucleotides <- strsplit(data2$V2, "")
+nucleotide_matrix <- do.call(rbind, nucleotides)
+result <- data.frame (cbind(data2[, 1], nucleotide_matrix))
+print(result)
+data3 <- result[,-1]
+
+library(dplyr)
+df <- mutate_all(data3, as.numeric)
+df3 <- data.frame (cbind(data2[, 1], df))
+colnames(df3)[colnames(df3) == "data2...1."] <- "Gene"
+
+t11 <- df3 [1:1000,]
+t12 <- df3 [1001:2000,]
+t13 <- df3 [2001:3000,]
+t14 <- df3 [3001:4000,]
+t15 <- df3 [4001:5000,]
+t16 <- df3 [5001:6000,]
+t17 <- df3 [6001:7000,]
+t18 <- df3 [7001:8000,]
+t19 <- df3 [8001:9000,]
+t110 <- df3 [9001:10000,]
+
+final_datasets_list <- list()
+for (i in 1:10) {
+  current_dataset <- get(paste0("t1", i))
+  OS <- current_dataset[current_dataset$Gene == "Os", -1]
+  HS <- current_dataset[current_dataset$Gene == "Hs", -1]
+  GS <- current_dataset[current_dataset$Gene == "Gs", -1]
+  CS <- current_dataset[current_dataset$Gene == "Cs", -1]
+  chunk_size <- 25
+  OS_list <- list()
+  HS_list <- list()
+  GS_list <- list()
+  CS_list <- list()
+  for (j in 1:ceiling(nrow(OS) / chunk_size)) {
+    start_row <- (j - 1) * chunk_size + 1
+    end_row <- min(j * chunk_size, nrow(OS))
+    OS_chunk <- OS[start_row:end_row, ]
+    OS_list[[j]] <- OS_chunk
+  }
+
+  for (j in 1:ceiling(nrow(HS) / chunk_size)) {
+    start_row <- (j - 1) * chunk_size + 1
+    end_row <- min(j * chunk_size, nrow(HS))
+    HS_chunk <- HS[start_row:end_row, ]
+    HS_list[[j]] <- HS_chunk
+  }
+
+  for (j in 1:ceiling(nrow(GS) / chunk_size)) {
+    start_row <- (j - 1) * chunk_size + 1
+    end_row <- min(j * chunk_size, nrow(GS))
+    GS_chunk <- GS[start_row:end_row, ]
+    GS_list[[j]] <- GS_chunk
+  }
+
+  for (j in 1:ceiling(nrow(CS) / chunk_size)) {
+    start_row <- (j - 1) * chunk_size + 1
+    end_row <- min(j * chunk_size, nrow(CS))
+    CS_chunk <- CS[start_row:end_row, ]
+    CS_list[[j]] <- CS_chunk
+  }
+
+  tr_OS <- do.call(cbind, OS_list)
+  tr_HS <- do.call(cbind, HS_list)
+  tr_GS <- do.call(cbind, GS_list)
+  tr_CS <- do.call(cbind, CS_list)
+
+  colnames(tr_OS) <- 1:ncol(tr_OS)
+  colnames(tr_HS) <- 1:ncol(tr_HS)
+  colnames(tr_GS) <- 1:ncol(tr_GS)
+  colnames(tr_CS) <- 1:ncol(tr_CS)
+
+  tre_OS <- data.frame(Gene = paste('Os', collapse=' '), tr_OS)
+  tre_HS <- data.frame(Gene = paste('Hs', collapse=' '), tr_HS)
+  tre_GS <- data.frame(Gene = paste('Gs', collapse=' '), tr_GS)
+  tre_CS <- data.frame(Gene = paste('Cs', collapse=' '), tr_CS)
+
+  treatment <- rbind(tre_CS, tre_OS, tre_HS, tre_GS)
+
+  final_datasets_list[[i]] <- treatment
+}
+
+final_dataset_names <- paste0("treatment1", 1:10)
+names(final_datasets_list) <- final_dataset_names
+
+
+# Set the ratio for training and test datasets
+ratio_train_test <- 0.7
+set.seed(123)
+training_datasets_list <- list()
+test_datasets_list <- list()
+for (i in 1:10) {
+  current_dataset <- final_datasets_list[[i]]
+  num_rows <- nrow(current_dataset)
+  num_rows_train <- round(num_rows * ratio_train_test)
+  train_indices <- sample(1:num_rows, size = num_rows_train, replace = FALSE)
+  train_dataset <- current_dataset[train_indices, ]
+  test_dataset <- current_dataset[-train_indices, ]
+  training_datasets_list[[i]] <- train_dataset
+  test_datasets_list[[i]] <- test_dataset
+}
+
+training_dataset_names <- paste0("training_dataset1", 1:10)
+test_dataset_names <- paste0("test_dataset1", 1:10)
+names(training_datasets_list) <- training_dataset_names
+names(test_datasets_list) <- test_dataset_names
+
+output_directory <- "C:\\Users\\Jian Wu\\Desktop\\STAT thesis\\final\\"
+
+for (i in 1:10) {
+  # Get the training and test datasets
+  training_dataset <- training_datasets_list[[i]]
+  test_dataset <- test_datasets_list[[i]]
+  training_file_name <- paste0(output_directory, "training_dataset", i, ".txt")
+  test_file_name <- paste0(output_directory, "test_dataset", i, ".txt")
+  write.table(training_dataset, file = training_file_name, sep = "\t", quote = FALSE, row.names = FALSE)
+  write.table(test_dataset, file = test_file_name, sep = "\t", quote = FALSE, row.names = FALSE)
+}
+
+#########################################
+#                                       #
+# 1.3 Classification Tree in Simulation #
+#                                       #
+#########################################
+
+#Treatment 1, the code for other treatments is the same
+
+library(randomForest)
+library(rattle)
+library(caret)
+library(e1071)
+library (tree)
+library(rpart)
+
+tree_accuracies_list <- list()
+tree_accuracies1_list <- list()
+
+tree_ctrl <- rpart.control(cp = 0, xval = 10)
+
+column_subsets <- c(1001, 2001, 5001, 10001)
+
+for (subset_size in column_subsets) {
+  tree_accuracies <- numeric(10)
+  tree_accuracies1 <- numeric(10)
+
+  for (i in 1:10) {
+    current_training_dataset <- training_datasets_list[[i]]
+    current_test_dataset <- test_datasets_list[[i]]
+    columns_to_select <- 1:subset_size
+    current_training_dataset <- current_training_dataset[, columns_to_select]
+    current_test_dataset <- current_test_dataset[, columns_to_select]
+    tree_optimal <- rpart(Gene ~ ., method = "class",
+                          data = current_training_dataset, control = tree_ctrl)
+    tree_validation <- predict(tree_optimal, current_training_dataset, type = "class")
+    tree_accuracies[i] <- mean(tree_validation == current_training_dataset$Gene)
+    tree_validation1 <- predict(tree_optimal, current_test_dataset, type = "class")
+    tree_accuracies1[i] <- mean(tree_validation1 == current_test_dataset$Gene)
+  }
+
+  tree_accuracies_list[[as.character(subset_size)]] <- tree_accuracies
+  tree_accuracies1_list[[as.character(subset_size)]] <- tree_accuracies1
+}
+
+for (subset_size in column_subsets) {
+  cat("Training Accuracies (Subset Size =", subset_size, "):", tree_accuracies_list[[as.character(subset_size)]], "\n")
+  cat("Test Accuracies (Subset Size =", subset_size, "):", tree_accuracies1_list[[as.character(subset_size)]], "\n")
+}
+
+library(ggplot2)
+
+training_accuracies_data <- data.frame(
+  Subset_Size = rep(column_subsets, each = 10),
+  Accuracy = unlist(tree_accuracies_list),
+  Dataset = rep("Training", each = 40)
+)
+
+test_accuracies_data <- data.frame(
+  Subset_Size = rep(column_subsets, each = 10),
+  Accuracy = unlist(tree_accuracies1_list),
+  Dataset = rep("Test", each = 40)
+)
+
+combined_accuracies_data <- rbind(training_accuracies_data, test_accuracies_data)
+
+ggplot(combined_accuracies_data, aes(x = as.factor(Subset_Size), y = Accuracy, fill = Dataset)) +
+  geom_boxplot(position = "dodge") +
+  labs(title = "Boxplot of Classification Tree Accuracies",
+       x = "Sequence Length", y = "Accuracy") +
+  theme_minimal()+
+ scale_x_discrete(labels = c("250 base pairs", "500 base pairs", "1250 base pairs", "2500 base pairs"))
+
+mean_accuracies <- tapply(combined_accuracies_data$Accuracy, list(combined_accuracies_data$Dataset, combined_accuracies_data$Subset_Size), mean)
+
+cat("Mean Training Accuracies:\n", round(mean_accuracies["Training", ], 4), "\n")
+cat("Mean Test Accuracies:\n", round(mean_accuracies["Test", ], 4), "\n")
+
+###################################
+#                                 #
+# 1.4 Data Analysis in Simulation #
+#                                 #   
+###################################
+
+library(readxl)
+d1 <- read_xlsx("data.xlsx",sheet = "treatment1")
+d2 <- read_xlsx("data.xlsx",sheet = "treatment2")
+d3 <- read_xlsx("data.xlsx",sheet = "treatment3")
+d4 <- read_xlsx("data.xlsx",sheet = "treatment4")
+d5 <- read_xlsx("data.xlsx",sheet = "treatment5")
+
+d1$Longth <- as.factor(d1$Longth)
+d2$Longth <- as.factor(d2$Longth)
+d3$Longth <- as.factor(d3$Longth)
+d4$Longth <- as.factor(d4$Longth)
+d5$Longth <- as.factor(d5$Longth)
+
+library(ggplot2)
+# Treatment 1
+ggplot(data=d1, mapping=aes(x=Longth, y=Accuracy, fill = MLM)) + geom_boxplot()+
+  ggtitle("Boxplot of accuracies under treatment 1") +
+  xlab("Length") + ylab("Accuracy")
+
+library(dplyr)
+library(tidyr)
+
+mean_table <- d1 %>%
+  group_by(Longth, MLM) %>%
+  summarize(Mean_Accuracy = mean(Accuracy, na.rm = TRUE)) %>%
+  pivot_wider(names_from = MLM, values_from = Mean_Accuracy)
+
+print(mean_table)
+
+# Treatment 2
+ggplot(data=d2, mapping=aes(x=Longth, y=Accuracy, fill = MLM)) + geom_boxplot()+
+  ggtitle("Boxplot of accuracies under treatment 2") +
+  xlab("Length") + ylab("Accuracy")
+
+library(dplyr)
+library(tidyr)
+
+mean_table <- d2 %>%
+  group_by(Longth, MLM) %>%
+  summarize(Mean_Accuracy = mean(Accuracy, na.rm = TRUE)) %>%
+  pivot_wider(names_from = MLM, values_from = Mean_Accuracy)
+
+print(mean_table)
+
+
+# Treatment 3
+ggplot(data=d3, mapping=aes(x=Longth, y=Accuracy, fill = MLM)) + geom_boxplot()+
+  ggtitle("Boxplot of accuracies under treatment 3") +
+  xlab("Length") + ylab("Accuracy")
+
+library(dplyr)
+library(tidyr)
+
+mean_table <- d3 %>%
+  group_by(Longth, MLM) %>%
+  summarize(Mean_Accuracy = mean(Accuracy, na.rm = TRUE)) %>%
+  pivot_wider(names_from = MLM, values_from = Mean_Accuracy)
+
+print(mean_table)
+
+
+# Treatment 4
+ggplot(data=d1, mapping=aes(x=Longth, y=Accuracy, fill = MLM)) + geom_boxplot()+
+  ggtitle("Boxplot of accuracies under treatment 4") +
+  xlab("Length") + ylab("Accuracy")
+
+library(dplyr)
+library(tidyr)
+
+mean_table <- d4 %>%
+  group_by(Longth, MLM) %>%
+  summarize(Mean_Accuracy = mean(Accuracy, na.rm = TRUE)) %>%
+  pivot_wider(names_from = MLM, values_from = Mean_Accuracy)
+
+print(mean_table)
+
+
+# Treatment 5
+ggplot(data=d5, mapping=aes(x=Longth, y=Accuracy, fill = MLM)) + geom_boxplot()+
+  ggtitle("Boxplot of accuracies under treatment 5") +
+  xlab("Length") + ylab("Accuracy")
+
+library(dplyr)
+library(tidyr)
+
+mean_table <- d5 %>%
+  group_by(Longth, MLM) %>%
+  summarize(Mean_Accuracy = mean(Accuracy, na.rm = TRUE)) %>%
+  pivot_wider(names_from = MLM, values_from = Mean_Accuracy)
+
+print(mean_table)
+
+#########################
+#                       #  
+# 2. R Code (Empirical) #
+#                       #
+#########################
+
+################################
+#                              #
+# 2.1 Pretreatment in raw data #
+#                              # 
+################################
+
+# Updated data code are the same
+
+data2 <- read.table("Raw.txt", header = FALSE, stringsAsFactors = FALSE)
+data2$V3[2]
+
+data2$V3 <- gsub("A", "1000", data2$V3)
+data2$V3 <- gsub("C", "0100", data2$V3)
+data2$V3 <- gsub("G", "0010", data2$V3)
+data2$V3 <- gsub("T", "0001", data2$V3)
+data2$V3 <- gsub("-", "2222", data2$V3)
+data2$V3[2]
+
+# Split the gene sequence into separate columns for each nucleotide
+nucleotides <- strsplit(data2$V3, "")
+nucleotide_matrix <- do.call(rbind, nucleotides)
+
+result <- data.frame (cbind(data2[, 2], nucleotide_matrix))
+print(result)
+data3 <- result[,-1]
+
+library(dplyr)
+data3 <- data3 %>%
+  mutate_all(~ replace(., . == 2, 0.5))
+df <- mutate_all(data3, as.numeric)
+df3 <- data.frame (cbind(data2[, 2], df))
+colnames(df3)[colnames(df3) == "data2...2."] <- "Species"
+df3
+
+set.seed(100)  
+index <- sample(1:nrow(df3), 0.7 * nrow(df3))
+train_data <- df3[index, ]
+test_data <- df3[-index, ]
+train_data[is.na(train_data)] <- 0
+test_data[is.na(test_data)] <- 0
+write.table(train_data,"C:\\Users\\Jian Wu\\Desktop\\STAT thesis\\final\\rawtrain.txt", row.names = FALSE)
+write.table(test_data,"C:\\Users\\Jian Wu\\Desktop\\STAT thesis\\final\\rawtest.txt", row.names = FALSE)
+
+#######################################
+#                                     #
+# 2.2 Classification Tree in raw data #
+#                                     #
+#######################################
+
+# Updated data code are the same
+
+library(randomForest)
+library(rattle)
+library(caret)
+library(e1071)
+library (tree)
+library(rpart)
+
+tree_ctrl = rpart.control(cp = 0, xval = 10)
+tree_optimal = rpart(Species~., method = "class",
+                data = train_data, control = tree_ctrl)
+printcp(tree_optimal)
+plotcp(tree_optimal)
+fancyRpartPlot(tree_optimal,type=2)
+
+tree_validation <- predict(tree_optimal, train_data, type = "class")
+tree_accuracy <- mean(tree_validation == train_data$Species)
+tree_accuracy
+
+tree_validation1 <- predict(tree_optimal, test_data, type = "class")
+tree_accuracy1 <- mean(tree_validation1 == test_data$Species)
+tree_accuracy1

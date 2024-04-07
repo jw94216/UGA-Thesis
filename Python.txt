@@ -1,0 +1,885 @@
+###############################
+#                             #
+# 1. Python Code (Simulation) #
+#                             #
+###############################
+
+###########################################
+#                                         #
+# 1.1 Pretreatment in Treatment 1 Group 1 #
+#                                         #
+###########################################
+
+# The other 9 groups in treatment 1 and the other 4 treatment codes are the same 
+
+%matplotlib inline
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import scale 
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import Ridge, RidgeCV, Lasso, LassoCV
+from sklearn.metrics import mean_squared_error
+
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+
+Train = pd.read_csv('training_dataset1.txt', delimiter='\s+')
+Test = pd.read_csv('test_dataset1.txt', delimiter='\s+')
+
+label_encoder = LabelEncoder()
+
+subsets = [
+    Train.iloc[:, :1001],  # First 1001 columns
+    Train.iloc[:, :2501],  # First 2501 columns
+    Train.iloc[:, :5001],  # First 5001 columns
+    Train.iloc[:, :10001],  # First 10001 columns
+    
+    Test.iloc[:, :1001],  # First 1001 columns
+    Test.iloc[:, :2501],  # First 2501 columns
+    Test.iloc[:, :5001],  # First 5001 columns
+    Test.iloc[:, :10001],  # First 10001 columns
+]
+
+datasets = []
+
+for subset in subsets:
+    # Create a dataset dictionary
+    dataset_dict = {
+        'X_train': subset.drop(['Gene'], axis=1).values,
+        'Y_train': label_encoder.fit_transform(subset['Gene']),
+    }
+    # Append the dataset dictionary to the list
+    datasets.append(dataset_dict)
+
+print(datasets[0]['X_train'].shape)  # Displaying the shape for illustration purposes
+print(datasets[0]['Y_train'][:5])  # Displaying the first 5 labels for illustration purposes
+
+##################################
+#                                #
+# 1.2 SVM in Treatment 1 Group 1 #
+#                                #
+##################################
+
+# The other 9 groups in treatment 1 and the other 4 treatment codes are the same 
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.svm import SVC
+from sklearn.preprocessing import LabelEncoder
+
+label_encoder = LabelEncoder()
+
+tuned_parameters = [{'C': [0.01, 0.1, 1, 10, 100],
+                     'gamma': [0.5, 1, 2, 3, 4]}]
+
+svm_classifier = SVC(kernel='rbf')
+
+accuracies = []
+
+column_lengths = [1001, 2501, 5001, 10001]
+
+for num_columns in column_lengths:
+    X_train = Train.iloc[:, :num_columns].drop(['Gene'], axis=1).values
+    y_train = label_encoder.fit_transform(Train.iloc[:, :num_columns]['Gene'])
+    
+    X_test = Test.iloc[:, :num_columns].drop(['Gene'], axis=1).values
+    y_test = label_encoder.fit_transform(Test.iloc[:, :num_columns]['Gene'])
+
+    clf = GridSearchCV(svm_classifier, tuned_parameters, cv=10, scoring='accuracy')
+    clf.fit(X_train, y_train)
+
+    y_pred = clf.predict(X_test)
+
+    accuracy = accuracy_score(y_test, y_pred)
+    accuracies.append(accuracy)
+
+    print(f"\nSubset with {num_columns} columns:")
+    print("Confusion Matrix:")
+    print(confusion_matrix(y_test, y_pred))
+    print("Accuracy Score:", accuracy)
+
+print("\nOverall Accuracies:")
+for i, num_columns in enumerate(column_lengths):
+print(f"Subset with {num_columns} columns: {accuracies[i]}")
+
+######################################
+#                                    #
+# 1.3 XGboost in Treatment 1 Group 1 #
+#                                    #
+######################################
+
+# The other 9 groups in treatment 1 and the other 4 treatment codes are the same 
+
+pip install xgboost
+import xgboost as xgb
+import numpy as np
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder
+
+label_encoder = LabelEncoder()
+
+param = {
+    'max_depth': 3,
+    'eta': 0.3,
+    'verbosity': 1,
+    'objective': 'multi:softprob',
+    'num_class': 4  # specify the number of classes
+}
+
+num_iter = 15
+
+column_lengths = [1001, 2501, 5001, 10001]
+
+accuracies = []
+
+for num_columns in column_lengths:
+    X_train = Train.iloc[:, :num_columns].drop(['Gene'], axis=1).values
+    y_train = label_encoder.fit_transform(Train.iloc[:, :num_columns]['Gene'])
+    
+    X_test = Test.iloc[:, :num_columns].drop(['Gene'], axis=1).values
+    y_test = label_encoder.fit_transform(Test.iloc[:, :num_columns]['Gene'])
+
+    dtrain = xgb.DMatrix(X_train, label=y_train, feature_names=[f'feature_{i}' for i in range(X_train.shape[1])])
+    dtest = xgb.DMatrix(X_test, label=y_test, feature_names=[f'feature_{i}' for i in range(X_test.shape[1])])
+
+    bst = xgb.train(param, dtrain, num_iter)
+
+    preds = bst.predict(dtest)
+
+    best_preds = np.argmax(preds, axis=1)
+
+    accuracy = accuracy_score(y_test, best_preds)
+    accuracies.append(accuracy)
+
+    print(f"\nSubset with {num_columns} columns:")
+    print("Confusion Matrix:")
+    print(confusion_matrix(y_test, best_preds))
+    print("Accuracy Score:", accuracy)
+
+print("\nOverall Accuracies:")
+for i, num_columns in enumerate(column_lengths):
+print(f"Subset with {num_columns} columns: {accuracies[i]}")
+
+#######################################
+#                                     #
+# 1.4 Catboost in Treatment 1 Group 1 #
+#                                     #
+#######################################
+
+# The other 9 groups in treatment 1 and the other 4 treatment codes are the same 
+
+from catboost import Pool, CatBoostClassifier
+from sklearn.metrics import accuracy_score
+import numpy as np
+
+def train_and_evaluate(X_train, y_train, X_test, y_test, categorical_features_indices, num_columns):
+    valid_categorical_indices = [idx for idx in categorical_features_indices if idx < num_columns]
+    
+    train_data = Pool(data=X_train.iloc[:, :num_columns], label=y_train, cat_features=valid_categorical_indices)
+    valid_data = Pool(data=X_test.iloc[:, :num_columns], label=y_test, cat_features=valid_categorical_indices)
+
+    params = {
+        'learning_rate': 0.1,
+        'eval_metric': 'Accuracy',
+        'cat_features': valid_categorical_indices,
+        'max_depth': 6,
+        'early_stopping_rounds': 200,
+        'verbose': 200,
+        'random_seed': 42
+    }
+
+    cbc = CatBoostClassifier(**params)
+    cbc.fit(train_data, eval_set=valid_data, use_best_model=True, plot=False)
+
+    preds = cbc.predict(X_test.iloc[:, :num_columns])
+
+    accuracy = accuracy_score(y_test, preds)
+    print(f"Accuracy for {num_columns} columns: {accuracy}")
+    return accuracy
+
+X_train = Train.drop(['Gene'], axis=1)
+y_train = Train['Gene']
+X_test = Test.drop(['Gene'], axis=1)
+y_test = Test['Gene']
+
+label_encoder = LabelEncoder()
+y_train_encoded = label_encoder.fit_transform(y_train)
+y_test_encoded = label_encoder.transform(y_test)
+
+categorical_features_indices = np.where(X_train.dtypes != np.float)[0]
+
+column_lengths = [1001, 2501, 5001, 10001]
+
+accuracies = []
+
+for num_columns in column_lengths:
+    accuracy = train_and_evaluate(X_train, y_train_encoded, X_test, y_test_encoded, categorical_features_indices, num_columns)
+    accuracies.append(accuracy)
+
+print("\nOverall Accuracies:")
+for i, num_columns in enumerate(column_lengths):
+print(f"Subset with {num_columns} columns: {accuracies[i]}")
+
+##########################
+#                        #
+# 1.5 KNN in Treatment 1 #
+#                        #
+##########################
+
+# The other 4 treatment codes are the same 
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+import pandas as pd
+
+def train_and_evaluate(X_train, y_train, X_test, y_test, num_neighbors, num_columns):
+    knn_model = KNeighborsClassifier(n_neighbors=num_neighbors)
+    knn_model.fit(X_train.iloc[:, :num_columns], y_train)
+    
+    y_pred = knn_model.predict(X_test.iloc[:, :num_columns])
+
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"Accuracy for {num_columns} columns: {accuracy}")
+    return accuracy
+
+num_neighbors = 8
+
+column_lengths = [1001, 2501, 5001, 10001]
+
+all_accuracies = []
+
+for i in range(1, 11):
+    train_file = f'training_dataset{i}.txt'
+    test_file = f'test_dataset{i}.txt'
+    
+    Train = pd.read_csv(train_file, delimiter='\s+')
+    Test = pd.read_csv(test_file, delimiter='\s+')
+    
+    X_train = Train.drop(['Gene'], axis=1)
+    y_train = Train['Gene']
+    X_test = Test.drop(['Gene'], axis=1)
+    y_test = Test['Gene']
+    
+    group_accuracies = []
+    
+    for num_columns in column_lengths:
+        accuracy = train_and_evaluate(X_train, y_train, X_test, y_test, num_neighbors, num_columns)
+        group_accuracies.append(accuracy)
+    
+    all_accuracies.append(group_accuracies)
+
+print("\nOverall Accuracies:")
+for i, group_accuracy in enumerate(all_accuracies):
+    print(f"Group {i+1} Accuracies:")
+    for j, num_columns in enumerate(column_lengths):
+        print(f"Subset with {num_columns} columns: {group_accuracy[j]}")
+
+#########################
+#                       #
+# 1.6 NN in Treatment 1 #
+#                       #
+#########################
+
+# The other 4 treatment codes are the same 
+
+pip install tensorflow
+conda install -c conda-forge tensorflow
+pip install --upgrade numpy
+pip install --upgrade tensorflow numpy
+
+# Find a suitable epoch
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+import numpy as np
+
+label_encoder = LabelEncoder()
+
+column_lengths = [1001, 2501, 5001, 10001]
+
+mean_accuracies = []
+
+for num_columns in column_lengths:
+    accuracies_column_length = []
+    
+    for group in range(1, 11):  # Iterating over 10 groups of data
+        # Load the original training and test datasets
+        train_file = f'training_dataset{group}.txt'
+        test_file = f'test_dataset{group}.txt'
+        Train = pd.read_csv(train_file, delimiter='\s+')
+        Test = pd.read_csv(test_file, delimiter='\s+')
+
+        X_train = Train.iloc[:, :num_columns].drop(['Gene'], axis=1).values
+        y_train = label_encoder.fit_transform(Train.iloc[:, :num_columns]['Gene'])
+
+        X_test = Test.iloc[:, :num_columns].drop(['Gene'], axis=1).values
+        y_test = label_encoder.transform(Test.iloc[:, :num_columns]['Gene'])  # Use transform instead of fit_transform
+
+        model = Sequential([
+            Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+            Dense(64, activation='relu'),
+            Dense(len(label_encoder.classes_), activation='softmax')  # Output layer for classification
+        ])
+
+        model.compile(optimizer='adam',
+                      loss='sparse_categorical_crossentropy',  # Use this loss for multi-class classification
+                      metrics=['accuracy'])
+
+        accuracies_list = []
+
+        for epoch in range(41):  # Training for 40 epochs
+            history = model.fit(X_train, y_train, epochs=1, batch_size=32, validation_split=0.2, verbose=0)
+            _, accuracy = model.evaluate(X_test, y_test, verbose=0)
+            accuracies_list.append(accuracy)
+
+        accuracies_column_length.append(accuracies_list)
+
+    mean_accuracies.append(np.mean(accuracies_column_length, axis=0))
+
+for column_index, accuracies in enumerate(mean_accuracies):
+    print(f"Column Length {column_lengths[column_index]}:")
+    for epoch_index, accuracy in enumerate(accuracies):
+        print(f"  Epoch {epoch_index + 1}: {accuracy}")
+
+import matplotlib.pyplot as plt
+
+colors = ['blue', 'green', 'red', 'purple']
+
+for i, column_length in enumerate(column_lengths):
+    plt.plot(range(1, 42), mean_accuracies[i], label=f'{column_length} base pairs', color=colors[i])
+
+plt.title('Mean Accuracy over Epochs for Different Column Lengths')
+plt.xlabel('Epoch')
+plt.ylabel('Mean Accuracy')
+plt.legend()
+plt.grid(True)
+
+plt.savefig('mean_accuracy_over_epochs.png', dpi=300, bbox_inches='tight')
+
+plt.show()
+
+# Find the accuracy based on the epoch = 20
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+
+label_encoder = LabelEncoder()
+
+column_lengths = [1001, 2501, 5001, 10001]
+
+accuracies = []
+
+for group in range(1, 11):  # Iterating over 10 groups of data
+    train_file = f'training_dataset{group}.txt'
+    test_file = f'test_dataset{group}.txt'
+    
+    Train = pd.read_csv(train_file, delimiter='\s+')
+    Test = pd.read_csv(test_file, delimiter='\s+')
+
+    group_accuracies = []
+
+    for num_columns in column_lengths:
+        X_train = Train.iloc[:, :num_columns].drop(['Gene'], axis=1).values
+        y_train = label_encoder.fit_transform(Train.iloc[:, :num_columns]['Gene'])
+        
+        X_test = Test.iloc[:, :num_columns].drop(['Gene'], axis=1).values
+        y_test = label_encoder.transform(Test.iloc[:, :num_columns]['Gene'])  # Use transform instead of fit_transform
+        
+        model = Sequential([
+            Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+            Dense(64, activation='relu'),
+            Dense(len(label_encoder.classes_), activation='softmax')  # Output layer for classification
+        ])
+
+        model.compile(optimizer='adam',
+                      loss='sparse_categorical_crossentropy',  # Use this loss for multi-class classification
+                      metrics=['accuracy'])
+
+        model.fit(X_train, y_train, epochs=20, batch_size=32, validation_split=0.2, verbose=0)
+
+        _, accuracy = model.evaluate(X_test, y_test)
+        group_accuracies.append(accuracy)
+
+        print(f"Group {group}, Subset with {num_columns} columns Accuracy: {accuracy}")
+
+    accuracies.append(group_accuracies)
+
+print("\nOverall Accuracies:")
+for i, num_columns in enumerate(column_lengths):
+    subset_accuracies = [group_accuracies[i] for group_accuracies in accuracies]
+    mean_accuracy = sum(subset_accuracies) / len(subset_accuracies)
+    print(f"Subset with {num_columns} columns: Mean accuracy: {mean_accuracy}, Individual accuracies: {subset_accuracies}")
+
+#############################
+#                           #
+# 1.7 Kmeans in Treatment 1 #
+#                           #
+#############################
+
+# The other 4 treatment codes are the same 
+pip install --user numpy matplotlib
+pip install --upgrade threadpoolctl scikit-learn
+pip install --user numpy matplotlib
+pip install threadpoolctl==3.1.0
+
+# Find the k
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+import pandas as pd
+import numpy as np
+
+column_lengths = [1001, 2501, 5001, 10001]
+base_pairs = [250, 500, 1250, 2500]
+num_clusters = range(1, 11)  # Number of clusters to try
+
+inertias_dict = {length: [] for length in column_lengths}
+
+for length, base_pair in zip(column_lengths, base_pairs):
+    group_inertias = []
+
+    for group in range(1, 11):  # Iterating over 10 groups of data
+        # Read the train and test datasets
+        train_file = f'training_dataset{group}.txt'
+        test_file = f'test_dataset{group}.txt'
+        Train1 = pd.read_csv(train_file, delimiter='\s+')
+        Test1 = pd.read_csv(test_file, delimiter='\s+')
+
+        Train = pd.concat([Train1, Test1], ignore_index=True)
+
+        X_train = Train.iloc[:, :length].drop(['Gene'], axis=1).values
+        data = [tuple(row) for row in X_train]
+
+        inertias = []
+        for k in num_clusters:
+            kmeans = KMeans(n_clusters=k, random_state=10)
+            kmeans.fit(data)
+            inertias.append(kmeans.inertia_)
+
+        group_inertias.append(inertias)
+
+    avg_inertias = np.mean(group_inertias, axis=0)
+
+    inertias_dict[length] = avg_inertias
+
+# Plot the average inertia over number of clusters for each subset of columns
+for length, inertias in inertias_dict.items():
+    plt.plot(num_clusters, inertias, marker='o', label=f'{base_pairs[column_lengths.index(length)]} base pairs')
+
+plt.title('Mean Inertia over Number of Clusters')
+plt.xlabel('Number of Clusters')
+plt.ylabel('Mean Inertia')
+plt.xticks(num_clusters)
+plt.legend()
+plt.grid(True)
+
+plt.savefig('mean_inertia_plot.png', dpi=300, bbox_inches='tight')
+
+plt.show()
+
+# Find the accuracy based on the k = optimum k
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+import numpy as np
+
+def train_and_evaluate(X_train, y_train, X_test, y_test, num_clusters, num_columns):
+    kmeans = KMeans(n_clusters=num_clusters, random_state=10).fit(X_train.iloc[:, :num_columns])
+
+    train_clusters = kmeans.labels_
+    test_clusters = kmeans.predict(X_test.iloc[:, :num_columns])
+
+    logreg = LogisticRegression(max_iter=1000, random_state=10)
+    logreg.fit(train_clusters.reshape(-1, 1), y_train)
+
+    predictions_LR = logreg.predict(test_clusters.reshape(-1, 1))
+
+    accuracy = accuracy_score(y_test, predictions_LR)
+    print(f"Accuracy for {num_columns} columns: {accuracy}")
+    return accuracy
+
+num_clusters = 6
+
+column_lengths = [1001, 2501, 5001, 10001]
+
+accuracies = []
+
+for i in range(1, 11):  # Assuming you have 10 groups of data
+    train_file = f'training_dataset{i}.txt'
+    test_file = f'test_dataset{i}.txt'
+    
+    X_train = pd.read_csv(train_file, delimiter='\s+').drop(['Gene'], axis=1)
+    y_train = pd.read_csv(train_file, delimiter='\s+')['Gene']
+    X_test = pd.read_csv(test_file, delimiter='\s+').drop(['Gene'], axis=1)
+    y_test = pd.read_csv(test_file, delimiter='\s+')['Gene']
+
+    for num_columns in column_lengths:
+        accuracy = train_and_evaluate(X_train, y_train, X_test, y_test, num_clusters, num_columns)
+        accuracies.append(accuracy)
+
+print("\nOverall Accuracies:")
+group_num = 1
+for i, num_columns in enumerate(column_lengths):
+    print(f"Subset with {num_columns} columns - Group {group_num}: {accuracies[i]}")
+    if (i + 1) % len(column_lengths) == 0:
+        group_num += 1
+
+
+##############################
+#                            #
+# 2. Python Code (Empirical) #
+#                            #
+##############################
+
+###################################
+#                                 #
+# 2.1 Pretreatment in raw dataset #
+#                                 #
+###################################
+
+# The updated dataset code are the same
+ 
+%matplotlib inline
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import scale 
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import Ridge, RidgeCV, Lasso, LassoCV
+from sklearn.metrics import mean_squared_error
+
+train = pd.read_csv('rawtrain.txt', delimiter='\s+')
+test = pd.read_csv('rawtest.txt', delimiter='\s+')
+train.head()
+
+from sklearn.preprocessing import LabelEncoder
+label_encoder = LabelEncoder()
+y1 = train['Species']
+y2 = test['Species']
+Y1 = label_encoder.fit_transform(y1)
+Y2 = label_encoder.fit_transform(y2)
+Y1
+
+X_train1 = train.drop(['Species'], axis = 1).values
+X_test1 = test.drop(['Species'], axis = 1).values
+y_train1 = Y1
+y_test1 = Y2
+
+##########################
+#                        #
+# 2.2 SVM in raw dataset #
+#                        #
+##########################
+
+# The updated dataset code are the same
+from sklearn.svm import SVC
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import GridSearchCV
+
+tuned_parameters2 = [{'C': [0.01, 0.1, 1, 10, 100],
+                     'gamma': [0.5, 1,2,3,4]}]
+clf2 = GridSearchCV(SVC(kernel='rbf'), tuned_parameters2, cv=10, scoring='accuracy')
+clf2.fit(X_train1, y_train1)
+clf2.best_params_
+
+print(confusion_matrix(y_test1, clf2.best_estimator_.predict(X_test1)))
+print(clf2.best_estimator_.score(X_test1, y_test1))
+
+##############################
+#                            #
+# 2.3 XGboost in raw dataset #
+#                            #
+##############################
+
+# The updated dataset code are the same
+pip install xgboost
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import dump_svmlight_file
+from sklearn.metrics import precision_score, accuracy_score
+import xgboost as xgb
+
+dtrain1 = xgb.DMatrix(X_train1, label=y_train1)
+dtest1 = xgb.DMatrix(X_test1, label=y_test1)
+
+param = {
+    'max_depth': 3,
+    'eta': 0.3,
+    'verbosity': 1,
+    'objective': 'multi:softmax',  # Use multi:softmax for multiclass classification
+    'num_class': len(np.unique(y_train1))  # Specify the number of unique classes in your target variable
+}
+
+num_iter = 5  # Number of training iterations
+
+bst = xgb.train(param, dtrain1, num_iter)
+
+preds1 = bst.predict(dtest1)
+
+best_preds1 = np.asarray([np.argmax(line) for line in preds1])
+
+print("Predictions:", best_preds1)
+print("Actual labels:", y_test1)
+
+accuracy1 = accuracy_score(y_test1, best_preds1)
+print("Accuracy: %.2f%%" % (accuracy1 * 100.0))
+
+###############################
+#                             #
+# 2.4 Catboost in raw dataset #
+#                             #
+###############################
+
+# The updated dataset code are the same
+pip install catboost
+from catboost import Pool
+from catboost import CatBoostClassifier
+
+null_value_stats = train.isnull().sum(axis=0)
+null_value_stats[null_value_stats != 0]
+
+X_train2 = train.drop(['Species'],axis = 1)
+y_train2 = train.Species
+X_test2 = test.drop(['Species'],axis = 1)
+y_test2 = test.Species
+
+train.fillna(-999, inplace=True)
+
+print(X_train2.dtypes,X_test2.dtypes)
+categorical_features_indices = np.where(X_train2.dtypes != float)[0]
+
+unexpected_values_train = X_train2.astype(str).apply(lambda x: x.str.contains('\.').sum())
+unexpected_values_test = X_test2.astype(str).apply(lambda x: x.str.contains('\.').sum())
+
+print("Unexpected values in training set:")
+print(unexpected_values_train[unexpected_values_train != 0])
+
+print("\nUnexpected values in testing set:")
+print(unexpected_values_test[unexpected_values_test != 0])
+
+X_train2 = X_train2.astype(str)
+X_test2 = X_test2.astype(str)
+
+train_data1 = Pool(data=X_train2,
+                   label=y_train2,
+                   cat_features=categorical_features_indices)
+valid_data1 = Pool(data=X_test2,
+                   label=y_test2,
+                   cat_features=categorical_features_indices)
+
+from sklearn.model_selection import train_test_split
+
+%time
+params = {
+          'learning_rate':0.1,
+          'eval_metric':'AUC',
+           'cat_features': categorical_features_indices, # 
+    
+          'max_depth':6,
+          'early_stopping_rounds': 200,
+          'verbose': 200,
+          'random_seed': 42
+         }
+
+cbc_7 = CatBoostClassifier(**params)
+cbc_7.fit(train_data1, # instead of X_train, y_train
+          eval_set=valid_data1, # instead of (X_valid, y_valid)
+          use_best_model=True, 
+          plot=True);
+
+##########################
+#                        #
+# 2.5 KNN in raw dataset #
+#                        #
+##########################
+
+# The updated dataset code are the same
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+
+k = 5
+knn_model = KNeighborsClassifier(n_neighbors=k)
+knn_model.fit(X_train1, y_train1)
+
+y_pred = knn_model.predict(X_test1)
+
+accuracy = accuracy_score(y_test1, y_pred)
+print(f'Accuracy: {accuracy * 100:.2f}%')
+
+#########################
+#                       #
+# 2.6 NN in raw dataset #
+#                       #
+#########################
+
+# The updated dataset code are the same
+pip install --upgrade tensorflow
+pip install --upgrade numpy
+
+# Find Epoch
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+import numpy as np
+
+label_encoder = LabelEncoder()
+
+train_file = 'rawtrain.txt'
+test_file = 'rawtest.txt'
+Train = pd.read_csv(train_file, delimiter='\s+')
+Test = pd.read_csv(test_file, delimiter='\s+')
+
+X_train = Train.drop(['Species'], axis=1).values
+y_train = label_encoder.fit_transform(Train['Species'])
+
+X_test = Test.drop(['Species'], axis=1).values
+y_test = label_encoder.transform(Test['Species'])  # Use transform instead of fit_transform
+
+model = Sequential([
+    Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+    Dense(64, activation='relu'),
+    Dense(len(label_encoder.classes_), activation='softmax')  # Output layer for classification
+])
+
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',  # Use this loss for multi-class classification
+              metrics=['accuracy'])
+
+history = model.fit(X_train, y_train, epochs=40, batch_size=32, validation_split=0.2, verbose=1)
+
+test_loss, test_accuracy = model.evaluate(X_test, y_test, verbose=0)
+print(f'Test accuracy: {test_accuracy}')
+
+import matplotlib.pyplot as plt
+
+test_accuracy = history.history['accuracy']
+
+# Plot test accuracy
+plt.plot(range(1, len(test_accuracy) + 1), test_accuracy, label='Test Accuracy')
+plt.title('Test Accuracy over Epochs')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid(True)
+
+plt.savefig('test_accuracy_plot.png', dpi=300, bbox_inches='tight')
+
+plt.show()
+
+# Find accuracy
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+
+train_file = 'rawtrain.txt'
+test_file = 'rawtest.txt'
+
+Train = pd.read_csv(train_file, delimiter='\s+')
+Test = pd.read_csv(test_file, delimiter='\s+')
+
+X_train = Train.drop(['Species'], axis=1).values
+y_train = Train['Species']
+
+X_test = Test.drop(['Species'], axis=1).values
+y_test = Test['Species']
+
+label_encoder = LabelEncoder()
+y_train_encoded = label_encoder.fit_transform(y_train)
+y_test_encoded = label_encoder.transform(y_test)
+
+model = Sequential([
+    Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+    Dense(64, activation='relu'),
+    Dense(len(label_encoder.classes_), activation='softmax')
+])
+
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+model.fit(X_train, y_train_encoded, epochs=10, batch_size=32, validation_split=0.2)
+
+_, accuracy = model.evaluate(X_test, y_test_encoded)
+print(f"Test Accuracy: {accuracy}")
+
+#############################
+#                           #
+# 2.7 Kmeans in raw dataset #
+#                           #
+#############################
+
+# The updated dataset code are the same
+
+# Find K
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+import pandas as pd
+
+train = pd.read_csv('rawtrain.txt', delimiter='\s+')
+test = pd.read_csv('rawtest.txt', delimiter='\s+')
+Train = pd.concat([train, test], ignore_index=True)
+
+X_train = Train.drop(['Species'], axis=1).values
+
+kmeans = KMeans()
+
+inertias = []
+for k in range(1, 11):
+    kmeans.set_params(n_clusters=k)
+    kmeans.fit(X_train)
+    inertias.append(kmeans.inertia_)
+
+# Plot the elbow method
+plt.plot(range(1, 11), inertias, marker='o')
+plt.title('Elbow Method for Optimal k')
+plt.xlabel('Number of Clusters')
+plt.ylabel('Inertia')
+plt.grid(True)
+plt.tight_layout()
+
+plt.savefig('elbow_plot.png', dpi=300)
+
+plt.show()
+
+# Find accuracy
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+
+def load_data(train_file, test_file):
+    X_train = pd.read_csv(train_file, delimiter='\s+').drop(['Species'], axis=1)
+    y_train = pd.read_csv(train_file, delimiter='\s+')['Species']
+    X_test = pd.read_csv(test_file, delimiter='\s+').drop(['Species'], axis=1)
+    y_test = pd.read_csv(test_file, delimiter='\s+')['Species']
+    return X_train, y_train, X_test, y_test
+
+def train_and_evaluate(X_train, y_train, X_test, y_test, num_clusters):
+    kmeans = KMeans(n_clusters=num_clusters, random_state=10).fit(X_train)
+    train_clusters = kmeans.labels_
+    test_clusters = kmeans.predict(X_test)
+    logreg = LogisticRegression(max_iter=1000, random_state=10)
+    logreg.fit(train_clusters.reshape(-1, 1), y_train)
+    predictions_LR = logreg.predict(test_clusters.reshape(-1, 1))
+    accuracy = accuracy_score(y_test, predictions_LR)
+    print(f"Accuracy using the whole dataset: {accuracy}")
+    return accuracy
+
+num_clusters = 5
+train_file = 'rawtrain.txt'
+test_file = 'rawtest.txt'
+
+X_train, y_train, X_test, y_test = load_data(train_file, test_file)
+accuracy = train_and_evaluate(X_train, y_train, X_test, y_test, num_clusters)
